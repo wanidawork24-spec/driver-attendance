@@ -2012,30 +2012,6 @@ function refreshDriverBadge() {
     if (b) b.innerHTML = pending ? '<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;">'+pending+'</span>' : '';
   }).getDriverListForAdmin(currentUser.token);
 }
-function approveDriver(id) {
-  showSpinner('กำลังอนุมัติ...');
-  google.script.run
-    .withSuccessHandler(function(){ hideSpinner(); showToast('อนุมัติเรียบร้อย พนักงานสามารถเข้าใช้งานได้แล้ว','success'); loadDrivers(); refreshDriverBadge(); })
-    .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
-    .setDriverStatus(currentUser.token, id, 'Active');
-}
-function rejectDriver(id) {
-  if (!confirm('ปฏิเสธการสมัครของพนักงานคนนี้? บัญชีจะถูกตั้งเป็นปิดใช้งาน')) return;
-  showSpinner('กำลังบันทึก...');
-  google.script.run
-    .withSuccessHandler(function(){ hideSpinner(); showToast('ปฏิเสธคำขอแล้ว','success'); loadDrivers(); refreshDriverBadge(); })
-    .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
-    .setDriverStatus(currentUser.token, id, 'Inactive');
-}
-function refreshDriverBadge() {
-  google.script.run.withSuccessHandler(function(res){
-      if (res && res.authExpired) { handleAuthExpired(); return; }
-    if (!res || !res.success) return;
-    var pending = res.drivers.filter(function(d){ return d.status==='Pending'; }).length;
-    var b = document.getElementById('driverBadge');
-    if (b) b.innerHTML = pending ? '<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;">'+pending+'</span>' : '';
-  }).getDriverListForAdmin(currentUser.token);
-}
 function resetDriverPw(id) {
   if (!confirm('รีเซ็ตรหัสผ่านของพนักงานคนนี้?')) return;
   showSpinner('กำลังรีเซ็ต...');
