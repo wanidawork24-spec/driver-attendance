@@ -92,6 +92,7 @@
   .cam-card { border:1px solid #e2e8f0; border-radius:16px; background:#fff; padding:14px; }
   .cam-stage { position:relative; width:100%; border-radius:14px; overflow:hidden; background:#0f172a; aspect-ratio:3/4; max-height:320px; display:flex; align-items:center; justify-content:center; }
   .cam-stage video, .cam-stage canvas, .cam-stage img { width:100%; height:100%; object-fit:cover; display:block; }
+  .cam-stage video { transform: scaleX(-1); } /* พลิกภาพพรีวิวกล้องหน้าให้เหมือนกระจก */
   .cam-placeholder { color:#94a3b8; font-size:12.5px; font-weight:700; text-align:center; padding:20px; }
   .cam-badge { position:absolute; top:8px; left:8px; background:rgba(15,23,42,.7); color:#fff; font-size:10.5px; font-weight:700; padding:4px 9px; border-radius:999px; }
   .flash-screen { position:fixed; inset:0; background:#fff; z-index:400; }
@@ -370,6 +371,7 @@
     <form id="checkOutForm" class="form hidden" onsubmit="handleCheckOut(event)">
       <div><label class="label">เลือกรายการที่จะเช็คเอาท์ *</label>
         <select id="activeTripSelect" class="field" onchange="onTripSelected()" required></select></div>
+      <div class="btn btn-outline btn-sm" style="margin-bottom:12px;" onclick="openEditCheckinModal()">✏️ แก้ไขข้อมูลเช็คอิน (กรณีกรอกผิด)</div>
 
       <div class="row2">
         <div><label class="label">วันที่ออกงาน *</label>
@@ -421,11 +423,12 @@
             <input id="hotelAmount" type="number" step="0.01" class="field" placeholder="0.00"></div>
           <div><label class="label">แนบรูปใบเสร็จค่าที่พัก</label>
             <div class="upload-box" onclick="document.getElementById('hotelFile').click()">
-              <div class="upload-icon">📷</div>
-              <div class="upload-text" id="hotelFileLabel">แตะเพื่อถ่ายรูป / เลือกรูปใบเสร็จ</div>
+              <div class="upload-icon">📎</div>
+              <div class="upload-text" id="hotelFileLabel">แตะเพื่อเลือกรูปหรือไฟล์ PDF ใบเสร็จจากเครื่อง</div>
               <img id="hotelPreview" class="upload-preview hidden">
+              <div id="hotelPreviewDoc" class="hidden" style="margin-top:6px;font-size:20px;">📄</div>
             </div>
-            <input type="file" id="hotelFile" accept="image/*" capture="environment" class="hidden" onchange="previewFile('hotelFile','hotelPreview','hotelFileLabel')"></div>
+            <input type="file" id="hotelFile" accept="image/*,application/pdf" class="hidden" onchange="previewFile('hotelFile','hotelPreview','hotelFileLabel','hotelPreviewDoc')"></div>
         </div>
       </div>
 
@@ -440,11 +443,12 @@
             <input id="otherAmount" type="number" step="0.01" class="field" placeholder="0.00"></div>
           <div><label class="label">แนบรูปใบเสร็จ</label>
             <div class="upload-box" onclick="document.getElementById('otherFile').click()">
-              <div class="upload-icon">📷</div>
-              <div class="upload-text" id="otherFileLabel">แตะเพื่อถ่ายรูป / เลือกรูปใบเสร็จ</div>
+              <div class="upload-icon">📎</div>
+              <div class="upload-text" id="otherFileLabel">แตะเพื่อเลือกรูปหรือไฟล์ PDF ใบเสร็จจากเครื่อง</div>
               <img id="otherPreview" class="upload-preview hidden">
+              <div id="otherPreviewDoc" class="hidden" style="margin-top:6px;font-size:20px;">📄</div>
             </div>
-            <input type="file" id="otherFile" accept="image/*" capture="environment" class="hidden" onchange="previewFile('otherFile','otherPreview','otherFileLabel')"></div>
+            <input type="file" id="otherFile" accept="image/*,application/pdf" class="hidden" onchange="previewFile('otherFile','otherPreview','otherFileLabel','otherPreviewDoc')"></div>
         </div>
       </div>
 
@@ -453,12 +457,13 @@
 
     <!-- DRIVER HISTORY -->
     <div id="historyPanel" class="form hidden">
-      <div class="banner banner-blue">คุณเห็นได้เฉพาะประวัติการทำงานของตัวเองเท่านั้น</div>
       <div style="display:flex;gap:8px;">
         <div class="btn btn-outline btn-sm" style="flex:1;" onclick="loadMyHistory()">🔄 รีเฟรช</div>
         <div class="btn btn-indigo btn-sm" style="flex:1;" onclick="openExportModal(false)">📤 Export ใบลงเวลา</div>
       </div>
-      <div id="myLogsList" style="margin-top:6px;"></div>
+      <div id="historyMonthPicker" style="margin-top:10px;"></div>
+      <div id="historyDayGrid" class="day-grid" style="margin-top:8px;"></div>
+      <div id="myLogsList" style="margin-top:12px;"></div>
     </div>
   </div>
 
@@ -481,7 +486,7 @@
       <div class="admin-tab" data-tab="proxy" onclick="switchAdminTab('proxy')">✍️ คีย์แทนพนักงาน</div>
       <div class="admin-tab" data-tab="requests" onclick="switchAdminTab('requests')">🔔 คำขอแก้ไข <span id="reqBadge"></span></div>
       <div class="admin-tab" data-tab="export" onclick="switchAdminTab('export')">📤 Export</div>
-      <div class="admin-tab" data-tab="drivers" onclick="switchAdminTab('drivers')">🧑‍✈️ พนักงาน</div>
+      <div class="admin-tab" data-tab="drivers" onclick="switchAdminTab('drivers')">🧑‍✈️ พนักงาน <span id="driverBadge"></span></div>
       <div class="admin-tab" data-tab="sites" onclick="switchAdminTab('sites')">🏢 หน่วยงาน</div>
       <div class="admin-tab" data-tab="users" onclick="switchAdminTab('users')">🔐 ผู้ใช้งาน</div>
     </div>
@@ -665,8 +670,11 @@ var MODEL_URLS = [
 var faceScriptLoaded = false;
 
 /* ======================= VIEW ROUTING ======================= */
-function showView(name) {
-  ['landing','login','driverLogin','register','kiosk','admin'].forEach(function(v){
+/* ผูกกับ history API เพื่อให้ปุ่มย้อนกลับของเบราว์เซอร์/มือถือ ทำงานถูกต้อง
+   (แต่เดิมไม่มีการจัดการ history เลย ทำให้กดย้อนกลับแล้วหลุดออกจากแอปหรือค้าง) */
+var VIEW_NAMES_ = ['landing','login','driverLogin','register','kiosk','admin'];
+function showView(name, fromPopState) {
+  VIEW_NAMES_.forEach(function(v){
     var el = document.getElementById('view-'+v);
     if (el) el.classList.toggle('hidden', v !== name);
   });
@@ -674,7 +682,17 @@ function showView(name) {
   if (name === 'admin') initAdmin();
   if (name === 'register') { loadFaceModels(); }
   window.scrollTo(0,0);
+  if (!fromPopState) {
+    if (history.state && history.state.view === name) history.replaceState({view:name}, '', '#'+name);
+    else history.pushState({view:name}, '', '#'+name);
+  }
 }
+window.addEventListener('popstate', function(e){
+  var v = (e.state && e.state.view) || 'landing';
+  if (v === 'kiosk' && !currentDriver) v = 'driverLogin';
+  if (v === 'admin' && !currentUser) v = 'login';
+  showView(v, true);
+});
 function leaveRegister() { stopCam('reg'); showView('landing'); }
 
 /* ======================= UTIL ======================= */
@@ -969,14 +987,18 @@ async function doCapture(kind) {
 
   var canvas = document.createElement('canvas');
   canvas.width = v.videoWidth; canvas.height = v.videoHeight;
-  canvas.getContext('2d').drawImage(v, 0, 0);
+  var camCtx = canvas.getContext('2d');
+  // พลิกภาพตอนบันทึกให้ตรงกับพรีวิวที่พนักงานเห็นบนจอ (mirror ตามตัวอย่าง)
+  camCtx.translate(canvas.width, 0);
+  camCtx.scale(-1, 1);
+  camCtx.drawImage(v, 0, 0);
 
   // ถ้าภาพมืดเกินไป -> เปิดจอสว่างช่วยแสงแล้วถ่ายใหม่อัตโนมัติ
   if (isTooDark(canvas)) {
     st.className = 'face-status face-wait';
     st.textContent = 'แสงน้อย — กำลังเปิดไฟหน้าจอช่วยถ่าย...';
     await screenFlashAndWait(300);
-    canvas.getContext('2d').drawImage(v, 0, 0);
+    camCtx.drawImage(v, 0, 0);
   }
 
   var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
@@ -1166,7 +1188,15 @@ function initKiosk() {
   document.getElementById('coTime').value = nowHM();
   loadFaceModels();
   loadSites();
-  switchKioskTab('checkin');
+  // ถ้ามีรายการที่เช็คอินค้างอยู่ (ยังไม่เช็คเอาท์) ให้พาไปหน้าเช็คเอาท์ทันที
+  // ป้องกันความสับสนว่าเหมือนยังไม่ได้เช็คอิน
+  google.script.run
+    .withSuccessHandler(function(trips){
+      activeTripsCache = trips || [];
+      switchKioskTab(trips && trips.length ? 'checkout' : 'checkin');
+    })
+    .withFailureHandler(function(){ switchKioskTab('checkin'); })
+    .getActiveTripsForDriver(currentDriver.token);
 }
 function updateClock() {
   var el = document.getElementById('kioskClock');
@@ -1259,15 +1289,49 @@ function resetCheckInForm() {
 }
 
 var currentTripStart = 0;
+var activeTripsCache = [];
 function loadActiveTrips() {
   if (!currentDriver) return;
   var sel = document.getElementById('activeTripSelect');
   sel.innerHTML = '<option value="">กำลังโหลด...</option>';
   google.script.run.withSuccessHandler(function(trips){
+    activeTripsCache = trips || [];
     if (!trips || !trips.length) { sel.innerHTML = '<option value="">-- ไม่มีรายการค้างเช็คเอาท์ --</option>'; return; }
     sel.innerHTML = '<option value="">-- เลือกรายการ --</option>' +
       trips.map(function(t){ return '<option value="'+t.logId+'" data-start="'+t.startMileage+'">'+escapeHtml(t.siteName)+' (ไมล์เริ่ม '+t.startMileage+')</option>'; }).join('');
   }).getActiveTripsForDriver(currentDriver.token);
+}
+function openEditCheckinModal() {
+  var logId = document.getElementById('activeTripSelect').value;
+  if (!logId) { showToast('กรุณาเลือกรายการที่จะแก้ไขก่อน','error'); return; }
+  var t = activeTripsCache.find(function(x){ return x.logId === logId; });
+  if (!t) { showToast('ไม่พบข้อมูลรายการนี้ กรุณารีเฟรชแล้วลองใหม่','error'); return; }
+  document.getElementById('modalRoot').innerHTML =
+    '<div class="overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()">' +
+    '<div class="modal-title">✏️ แก้ไขข้อมูลเช็คอิน</div>' +
+    '<div class="banner banner-blue" style="margin-bottom:12px;">แก้ไขได้เฉพาะรายการที่ยังไม่เช็คเอาท์ กรอกเฉพาะช่องที่ต้องการแก้ไข ช่องที่เว้นว่างจะไม่ถูกเปลี่ยน</div>' +
+    '<label class="label">หน่วยงาน</label><input id="ecSite" class="field" style="margin-bottom:8px;" value="'+escapeHtml(t.siteName||'')+'">' +
+    '<label class="label">เลขไมล์เริ่มต้น</label><input id="ecStart" type="number" class="field" style="margin-bottom:8px;" value="'+(t.startMileage||'')+'">' +
+    '<div class="btn btn-indigo" style="margin-top:10px;" onclick="submitEditCheckin(\''+logId+'\')">บันทึกการแก้ไข</div>' +
+    '<div class="btn btn-gray" style="margin-top:8px;" onclick="closeModal()">ยกเลิก</div>' +
+    '</div></div>';
+}
+function submitEditCheckin(logId) {
+  var site = document.getElementById('ecSite').value.trim();
+  var start = document.getElementById('ecStart').value;
+  var patch = {};
+  if (site) patch.siteName = site;
+  if (start !== '') patch.startMileage = Number(start);
+  showSpinner('กำลังบันทึก...');
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (res && res.authExpired) { handleAuthExpired(); return; }
+      hideSpinner(); closeModal();
+      showToast(res.message, res.success?'success':'error');
+      if (res.success) loadActiveTrips();
+    })
+    .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
+    .updateActiveCheckIn(currentDriver.token, logId, patch);
 }
 function onTripSelected() {
   var sel = document.getElementById('activeTripSelect');
@@ -1286,12 +1350,21 @@ function toggleAdvance(kind) {
   cb.checked = !cb.checked;
   document.getElementById(kind==='hotel'?'hotelSection':'otherSection').classList.toggle('hidden', !cb.checked);
 }
-function previewFile(inputId, previewId, labelId) {
+function previewFile(inputId, previewId, labelId, docPreviewId) {
   var f = document.getElementById(inputId).files[0];
   if (!f) return;
+  var isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  var img = document.getElementById(previewId);
+  var docEl = docPreviewId ? document.getElementById(docPreviewId) : null;
+  if (isPdf) {
+    img.classList.add('hidden');
+    if (docEl) { docEl.classList.remove('hidden'); }
+    document.getElementById(labelId).textContent = 'เลือกไฟล์ PDF แล้ว: ' + f.name;
+    return;
+  }
+  if (docEl) docEl.classList.add('hidden');
   var r = new FileReader();
   r.onload = function(e){
-    var img = document.getElementById(previewId);
     img.src = e.target.result; img.classList.remove('hidden');
     document.getElementById(labelId).textContent = 'เลือกรูปแล้ว: ' + f.name;
   };
@@ -1361,7 +1434,12 @@ async function handleCheckOut(e) {
     .processCheckOut(payload);
 }
 
-/* ---- driver history ---- */
+/* ---- driver history (ปฏิทินเลือกเดือน/วัน) ---- */
+var myLogsCache = [];
+var historySelMonthKey = '';
+var historySelDay = null;
+var HISTORY_TH_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+
 function loadMyHistory() {
   if (!currentDriver) return;
   showSpinner('กำลังโหลดประวัติ...');
@@ -1370,12 +1448,82 @@ function loadMyHistory() {
       if (res && res.authExpired) { handleAuthExpired(); return; }
       hideSpinner();
       if (!res.success) { showToast(res.message,'error'); return; }
-      var el = document.getElementById('myLogsList');
-      if (!res.logs.length) { el.innerHTML = '<p style="font-size:12.5px;color:#94a3b8;text-align:center;padding:20px;">ยังไม่มีประวัติการทำงาน</p>'; return; }
-      el.innerHTML = res.logs.map(function(l){ return renderLogCard(l, true); }).join('');
+      myLogsCache = res.logs || [];
+      historySelDay = null;
+      renderHistoryMonthPicker();
     })
     .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
     .getMyLogs(currentDriver.token);
+}
+
+function renderHistoryMonthPicker() {
+  var mp = document.getElementById('historyMonthPicker');
+  var dg = document.getElementById('historyDayGrid');
+  var el = document.getElementById('myLogsList');
+  if (!myLogsCache.length) {
+    mp.innerHTML = ''; dg.innerHTML = '';
+    el.innerHTML = '<p style="font-size:12.5px;color:#94a3b8;text-align:center;padding:20px;">ยังไม่มีประวัติการทำงาน</p>';
+    return;
+  }
+  var months = {};
+  myLogsCache.forEach(function(l){
+    var key = (l.checkInDate||'').slice(0,7);
+    if (key) months[key] = (months[key]||0) + 1;
+  });
+  var monthKeys = Object.keys(months).sort().reverse();
+  if (!historySelMonthKey || !months[historySelMonthKey]) historySelMonthKey = monthKeys[0];
+  mp.innerHTML =
+    '<label class="label">เลือกเดือนที่ต้องการดูประวัติ</label>' +
+    '<select class="field" onchange="selectHistoryMonth(this.value)">' +
+    monthKeys.map(function(k){
+      var y = Number(k.slice(0,4)), m = Number(k.slice(5,7));
+      return '<option value="'+k+'"'+(k===historySelMonthKey?' selected':'')+'>'+HISTORY_TH_MONTHS[m-1]+' '+(y+543)+' ('+months[k]+' รายการ)</option>';
+    }).join('') + '</select>';
+  renderHistoryDayGrid();
+}
+
+function selectHistoryMonth(key) {
+  historySelMonthKey = key;
+  historySelDay = null;
+  renderHistoryDayGrid();
+}
+
+function renderHistoryDayGrid() {
+  var dg = document.getElementById('historyDayGrid');
+  if (!historySelMonthKey) { dg.innerHTML = ''; return; }
+  var y = Number(historySelMonthKey.slice(0,4)), m = Number(historySelMonthKey.slice(5,7));
+  var daysInMonth = new Date(y, m, 0).getDate();
+  var daysWithLogs = {};
+  myLogsCache.forEach(function(l){
+    if ((l.checkInDate||'').slice(0,7) === historySelMonthKey) {
+      daysWithLogs[Number(l.checkInDate.slice(8,10))] = true;
+    }
+  });
+  var html = '';
+  for (var d = 1; d <= daysInMonth; d++) {
+    var has = !!daysWithLogs[d];
+    var cls = 'day-cell' + (!has ? ' dis' : '') + (d === historySelDay ? ' sel' : '');
+    html += '<div class="'+cls+'"'+(has ? ' onclick="selectHistoryDay('+d+')"' : '')+'>'+d+'</div>';
+  }
+  dg.innerHTML = html;
+  renderHistoryDayLogs();
+}
+
+function selectHistoryDay(d) {
+  historySelDay = d;
+  renderHistoryDayGrid();
+}
+
+function renderHistoryDayLogs() {
+  var el = document.getElementById('myLogsList');
+  if (!historySelDay) {
+    el.innerHTML = '<p style="font-size:12.5px;color:#94a3b8;text-align:center;padding:16px;">แตะวันที่ที่มีเครื่องหมาย เพื่อดูรายละเอียดของวันนั้น</p>';
+    return;
+  }
+  var dateStr = historySelMonthKey + '-' + String(historySelDay).padStart(2,'0');
+  var logs = myLogsCache.filter(function(l){ return l.checkInDate === dateStr; });
+  if (!logs.length) { el.innerHTML = '<p style="font-size:12.5px;color:#94a3b8;text-align:center;padding:16px;">ไม่มีประวัติวันนี้</p>'; return; }
+  el.innerHTML = logs.map(function(l){ return renderLogCard(l, true); }).join('');
 }
 
 function renderLogCard(l, isOwn) {
@@ -1451,6 +1599,7 @@ function initAdmin() {
   loadAdminDrivers();
   switchAdminTab('overview');
   refreshRequestBadge();
+  refreshDriverBadge();
 }
 function switchAdminTab(tab) {
   ['overview','logs','proxy','requests','export','drivers','sites','users'].forEach(function(t){
@@ -1817,17 +1966,75 @@ function loadDrivers() {
       hideSpinner();
       if (!res.success) { showToast(res.message,'error'); return; }
       adminDriversCache = res.drivers;
-      document.getElementById('driversList').innerHTML = res.drivers.map(function(d){
-        var chip = d.status==='Active' ? '<span class="chip" style="background:#d1fae5;color:#047857;">ใช้งาน</span>' : '<span class="chip" style="background:#f1f5f9;color:#64748b;">ปิดใช้งาน</span>';
+      var sorted = res.drivers.slice().sort(function(a,b){
+        var pa = a.status==='Pending' ? 0 : 1, pb = b.status==='Pending' ? 0 : 1;
+        return pa - pb;
+      });
+      document.getElementById('driversList').innerHTML = sorted.map(function(d){
+        var chip = d.status==='Active' ? '<span class="chip" style="background:#d1fae5;color:#047857;">ใช้งาน</span>'
+          : d.status==='Pending' ? '<span class="chip" style="background:#fef3c7;color:#b45309;">รออนุมัติ</span>'
+          : '<span class="chip" style="background:#f1f5f9;color:#64748b;">ปิดใช้งาน</span>';
         var maskId = d.nationalId ? String(d.nationalId).slice(0,4) + '-XXXX-' + String(d.nationalId).slice(-2) : '-';
+        var actions = d.status==='Pending'
+          ? '<div class="list-meta"><span class="link-btn" onclick="approveDriver(\''+d.id+'\')">✅ อนุมัติ</span>' +
+            '<span class="link-btn link-danger" onclick="rejectDriver(\''+d.id+'\')">❌ ปฏิเสธ</span></div>'
+          : '<div class="list-meta"><span class="link-btn" onclick="resetDriverPw(\''+d.id+'\')">🔑 รีเซ็ตรหัสผ่าน</span>' +
+            '<span class="link-btn link-danger" onclick="toggleDriver(\''+d.id+'\',\''+(d.status==='Active'?'Inactive':'Active')+'\')">'+(d.status==='Active'?'ปิดใช้งาน':'เปิดใช้งาน')+'</span></div>';
         return '<div class="list-card"><div class="list-top"><span class="list-name">'+escapeHtml(d.name)+' ('+escapeHtml(d.nickname||'')+')</span>'+chip+'</div>' +
           '<p class="list-sub">รหัส: '+d.id+' · โทร '+escapeHtml(d.phone||'-')+'<br>บัตรประชาชน: '+maskId+' · ใบหน้า: '+(d.hasFace?'ลงทะเบียนแล้ว ✓':'ยังไม่ลงทะเบียน')+'<br>สมัครเมื่อ '+(d.registeredAt||'-')+'</p>' +
-          '<div class="list-meta"><span class="link-btn" onclick="resetDriverPw(\''+d.id+'\')">🔑 รีเซ็ตรหัสผ่าน</span>' +
-          '<span class="link-btn link-danger" onclick="toggleDriver(\''+d.id+'\',\''+(d.status==='Active'?'Inactive':'Active')+'\')">'+(d.status==='Active'?'ปิดใช้งาน':'เปิดใช้งาน')+'</span></div></div>';
+          actions + '</div>';
       }).join('') || '<p style="font-size:12.5px;color:#94a3b8;">ยังไม่มีพนักงานลงทะเบียน</p>';
     })
     .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
     .getDriverListForAdmin(currentUser.token);
+}
+function approveDriver(id) {
+  showSpinner('กำลังอนุมัติ...');
+  google.script.run
+    .withSuccessHandler(function(){ hideSpinner(); showToast('อนุมัติเรียบร้อย พนักงานสามารถเข้าใช้งานได้แล้ว','success'); loadDrivers(); refreshDriverBadge(); })
+    .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
+    .setDriverStatus(currentUser.token, id, 'Active');
+}
+function rejectDriver(id) {
+  if (!confirm('ปฏิเสธการสมัครของพนักงานคนนี้? บัญชีจะถูกตั้งเป็นปิดใช้งาน')) return;
+  showSpinner('กำลังบันทึก...');
+  google.script.run
+    .withSuccessHandler(function(){ hideSpinner(); showToast('ปฏิเสธคำขอแล้ว','success'); loadDrivers(); refreshDriverBadge(); })
+    .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
+    .setDriverStatus(currentUser.token, id, 'Inactive');
+}
+function refreshDriverBadge() {
+  google.script.run.withSuccessHandler(function(res){
+      if (res && res.authExpired) { handleAuthExpired(); return; }
+    if (!res || !res.success) return;
+    var pending = res.drivers.filter(function(d){ return d.status==='Pending'; }).length;
+    var b = document.getElementById('driverBadge');
+    if (b) b.innerHTML = pending ? '<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;">'+pending+'</span>' : '';
+  }).getDriverListForAdmin(currentUser.token);
+}
+function approveDriver(id) {
+  showSpinner('กำลังอนุมัติ...');
+  google.script.run
+    .withSuccessHandler(function(){ hideSpinner(); showToast('อนุมัติเรียบร้อย พนักงานสามารถเข้าใช้งานได้แล้ว','success'); loadDrivers(); refreshDriverBadge(); })
+    .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
+    .setDriverStatus(currentUser.token, id, 'Active');
+}
+function rejectDriver(id) {
+  if (!confirm('ปฏิเสธการสมัครของพนักงานคนนี้? บัญชีจะถูกตั้งเป็นปิดใช้งาน')) return;
+  showSpinner('กำลังบันทึก...');
+  google.script.run
+    .withSuccessHandler(function(){ hideSpinner(); showToast('ปฏิเสธคำขอแล้ว','success'); loadDrivers(); refreshDriverBadge(); })
+    .withFailureHandler(function(err){ hideSpinner(); showToast(err.message,'error'); })
+    .setDriverStatus(currentUser.token, id, 'Inactive');
+}
+function refreshDriverBadge() {
+  google.script.run.withSuccessHandler(function(res){
+      if (res && res.authExpired) { handleAuthExpired(); return; }
+    if (!res || !res.success) return;
+    var pending = res.drivers.filter(function(d){ return d.status==='Pending'; }).length;
+    var b = document.getElementById('driverBadge');
+    if (b) b.innerHTML = pending ? '<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 7px;font-size:10px;">'+pending+'</span>' : '';
+  }).getDriverListForAdmin(currentUser.token);
 }
 function resetDriverPw(id) {
   if (!confirm('รีเซ็ตรหัสผ่านของพนักงานคนนี้?')) return;
@@ -1938,6 +2145,8 @@ if (document.readyState === 'loading') {
 } else {
   initCombos();
 }
+/* กำหนดจุดเริ่มต้นของ history ให้ตรงกับหน้าแรก (landing) เพื่อให้ปุ่มย้อนกลับทำงานถูกต้องตั้งแต่แรก */
+if (!history.state) history.replaceState({view:'landing'}, '', location.pathname + location.search);
 </script>
 </body>
 </html>
