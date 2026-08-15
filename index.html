@@ -45,6 +45,22 @@
   select.field { appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%2394a3b8'><path d='M2 4l5 5 5-5z'/></svg>"); background-repeat:no-repeat; background-position:right 14px center; }
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
+  /* --- ปุ่มแสดง/ซ่อนรหัสผ่าน --- */
+  .pw-wrap { position:relative; }
+  .pw-wrap .field { padding-right:62px; }
+  .pw-toggle { position:absolute; top:50%; right:7px; transform:translateY(-50%); border:none; background:transparent; font-size:12px; font-weight:800; color:#4f46e5; padding:9px 11px; cursor:pointer; font-family:inherit; border-radius:10px; -webkit-tap-highlight-color:transparent; }
+  .pw-toggle:active { background:#eef2ff; }
+
+  /* --- Combo box (แทน <datalist> ที่ iOS Safari รองรับไม่สมบูรณ์) --- */
+  .combo { position:relative; }
+  .combo-panel { position:absolute; z-index:60; left:0; right:0; top:calc(100% + 4px); background:#fff; border:1px solid #e2e8f0; border-radius:14px; box-shadow:0 18px 34px -12px rgba(15,23,42,.28); max-height:240px; overflow-y:auto; -webkit-overflow-scrolling:touch; display:none; }
+  .combo-panel.open { display:block; }
+  .combo-item { padding:11px 14px; font-size:13.5px; font-weight:600; color:#1e293b; border-bottom:1px solid #f1f5f9; cursor:pointer; }
+  .combo-item:last-child { border-bottom:none; }
+  .combo-item small { display:block; font-size:11px; font-weight:600; color:#94a3b8; margin-top:2px; }
+  .combo-item:active { background:#eef2ff; }
+  .combo-note { padding:11px 14px; font-size:12px; color:#94a3b8; font-weight:600; }
+
   .opt-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .opt-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
   .opt { border:1px solid #e2e8f0; border-radius:14px; padding:11px 4px; text-align:center; font-size:12.5px; font-weight:700; color:#64748b; line-height:1.3; cursor:pointer; background:#fff; }
@@ -216,7 +232,10 @@
         <div><label class="label">รหัสผู้ใช้งาน</label>
           <input id="drvUser" class="field" placeholder="เช่น PP00001" autocomplete="off" required></div>
         <div><label class="label">รหัสผ่าน</label>
-          <input id="drvPass" type="password" class="field" placeholder="กรอกรหัสผ่าน" autocomplete="off" required></div>
+          <div class="pw-wrap">
+            <input id="drvPass" type="password" class="field" placeholder="กรอกรหัสผ่าน" autocomplete="off" required>
+            <button type="button" class="pw-toggle" id="drvPassToggle" onclick="togglePw('drvPass',this)">แสดง</button>
+          </div></div>
         <p class="error-text" id="drvLoginError"></p>
         <button type="submit" class="btn btn-indigo">เข้าสู่ระบบ</button>
       </form>
@@ -244,7 +263,10 @@
         <div><label class="label">ชื่อผู้ใช้งาน</label>
           <input id="loginUsername" class="field" placeholder="เช่น admin" autocomplete="off" required></div>
         <div><label class="label">รหัสผ่าน</label>
-          <input id="loginPassword" type="password" class="field" placeholder="กรอกรหัสผ่าน" autocomplete="off" required></div>
+          <div class="pw-wrap">
+            <input id="loginPassword" type="password" class="field" placeholder="กรอกรหัสผ่าน" autocomplete="off" required>
+            <button type="button" class="pw-toggle" id="loginPasswordToggle" onclick="togglePw('loginPassword',this)">แสดง</button>
+          </div></div>
         <p class="error-text" id="loginError"></p>
         <button type="submit" class="btn btn-indigo">เข้าสู่ระบบ</button>
       </form>
@@ -298,8 +320,10 @@
         </div></div>
 
       <div><label class="label">หน่วยงาน / บริษัทที่ไปแทนงาน *</label>
-        <input id="ciSiteName" list="siteList" class="field" placeholder="พิมพ์เพื่อค้นหา หรือเลือกจากรายการ" required>
-        <datalist id="siteList"></datalist>
+        <div class="combo">
+          <input id="ciSiteName" class="field" placeholder="แตะเพื่อดูรายการ หรือพิมพ์เพื่อค้นหา" autocomplete="off" required>
+          <div class="combo-panel" id="ciSiteNamePanel"></div>
+        </div>
         <div class="hint" id="siteCount"></div></div>
 
       <div><label class="label">ประเภทการเดินทาง</label>
@@ -473,8 +497,12 @@
       </div>
 
       <div id="adminTab-logs" class="hidden">
-        <label class="label">กรองตามชื่อพนักงาน</label>
-        <select id="logFilterDriver" class="field" style="margin-bottom:12px;" onchange="loadLogs()"></select>
+        <label class="label">กรองตามชื่อ หรือรหัสพนักงาน</label>
+        <div class="combo" style="margin-bottom:12px;">
+          <input id="logFilterDriverText" class="field" placeholder="พิมพ์ชื่อ หรือรหัส เช่น PP00001 (เว้นว่าง = ทุกคน)" autocomplete="off">
+          <div class="combo-panel" id="logFilterDriverTextPanel"></div>
+        </div>
+        <input type="hidden" id="logFilterDriver">
         <div id="logsList"></div>
       </div>
 
@@ -501,7 +529,10 @@
               <div class="opt" data-val="นอกระบบ" onclick="selectOpt('pxWorkSystem',this)">นอกระบบ</div>
             </div></div>
           <div><label class="label">หน่วยงาน / บริษัท *</label>
-            <input id="pxSiteName" list="siteList" class="field" placeholder="พิมพ์เพื่อค้นหา" required></div>
+            <div class="combo">
+              <input id="pxSiteName" class="field" placeholder="แตะเพื่อดูรายการ หรือพิมพ์เพื่อค้นหา" autocomplete="off" required>
+              <div class="combo-panel" id="pxSiteNamePanel"></div>
+            </div></div>
           <div><label class="label">ประเภทการเดินทาง</label>
             <div class="opt-grid3" id="pxTripType">
               <div class="opt opt-active-indigo" data-val="ในพื้นที่ (กทม./ปริมณฑล)" onclick="selectOpt('pxTripType',this)">ในพื้นที่</div>
@@ -673,6 +704,92 @@ function nowHM() {
   var d = new Date();
   return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 }
+/* ===== แสดง/ซ่อนรหัสผ่าน ===== */
+function togglePw(id, btn) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var reveal = (el.type === 'password');
+  el.type = reveal ? 'text' : 'password';
+  btn.textContent = reveal ? 'ซ่อน' : 'แสดง';
+  try { el.focus(); el.setSelectionRange(el.value.length, el.value.length); } catch (e) {}
+}
+
+/* ===== COMBO BOX =====
+ * iOS Safari รองรับ <datalist> แบบไม่สมบูรณ์ (caniuse ระบุ "partial" ทุกเวอร์ชัน
+ * ตั้งแต่ 12.2 ถึงปัจจุบัน) จึงสร้าง dropdown เองด้วย DOM ธรรมดา ใช้ได้ทุกเบราว์เซอร์
+ * รูปแบบ item: { label: 'ข้อความที่กรอกลงช่อง', value: 'ค่าที่ส่งไปเซิร์ฟเวอร์', sub: 'บรรทัดคำอธิบาย' } */
+var comboReg = {};
+function setupCombo(inputId, opts) {
+  opts = opts || {};
+  var input = document.getElementById(inputId);
+  var panel = document.getElementById(inputId + 'Panel');
+  if (!input || !panel) return;
+  var cfg = comboReg[inputId] = {
+    input: input, panel: panel, items: [], shown: [],
+    hiddenId: opts.hiddenId || null, onPick: opts.onPick || null,
+    onClear: opts.onClear || null, max: opts.max || 60
+  };
+  input.addEventListener('focus', function () { comboRender(inputId); comboOpen(inputId, true); });
+  input.addEventListener('click', function () { comboRender(inputId); comboOpen(inputId, true); });
+  input.addEventListener('input', function () {
+    if (cfg.hiddenId) {
+      var h = document.getElementById(cfg.hiddenId);
+      if (h) h.value = '';
+      if (!input.value.trim() && cfg.onClear) cfg.onClear();
+    }
+    comboRender(inputId); comboOpen(inputId, true);
+  });
+  input.addEventListener('blur', function () { setTimeout(function () { comboOpen(inputId, false); }, 180); });
+}
+function comboSetItems(inputId, items) {
+  var cfg = comboReg[inputId];
+  if (cfg) cfg.items = items || [];
+}
+function comboOpen(inputId, on) {
+  var cfg = comboReg[inputId];
+  if (cfg) cfg.panel.classList.toggle('open', !!on);
+}
+function comboRender(inputId) {
+  var cfg = comboReg[inputId];
+  if (!cfg) return;
+  var q = cfg.input.value.trim().toLowerCase();
+  var list = cfg.items.filter(function (it) {
+    if (!q) return true;
+    return ((it.label || '') + ' ' + (it.sub || '') + ' ' + (it.value || '')).toLowerCase().indexOf(q) >= 0;
+  });
+  cfg.shown = list.slice(0, cfg.max);
+  var html = cfg.shown.map(function (it, i) {
+    return '<div class="combo-item" data-i="' + i + '">' + escapeHtml(it.label) +
+      (it.sub ? '<small>' + escapeHtml(it.sub) + '</small>' : '') + '</div>';
+  }).join('');
+  if (!cfg.shown.length) {
+    html = '<div class="combo-note">ไม่พบรายการที่ตรงกับ "' + escapeHtml(cfg.input.value) + '"</div>';
+  } else if (list.length > cfg.shown.length) {
+    html += '<div class="combo-note">แสดง ' + cfg.shown.length + ' จาก ' + list.length + ' รายการ — พิมพ์เพิ่มเพื่อค้นหา</div>';
+  }
+  cfg.panel.innerHTML = html;
+  Array.prototype.forEach.call(cfg.panel.querySelectorAll('.combo-item'), function (el) {
+    el.addEventListener('mousedown', function (ev) { ev.preventDefault(); });
+    el.addEventListener('click', function () {
+      var it = cfg.shown[Number(el.getAttribute('data-i'))];
+      if (!it) return;
+      cfg.input.value = it.label;
+      if (cfg.hiddenId) { var h = document.getElementById(cfg.hiddenId); if (h) h.value = it.value; }
+      comboOpen(inputId, false);
+      if (cfg.onPick) cfg.onPick(it);
+    });
+  });
+}
+function initCombos() {
+  setupCombo('ciSiteName');
+  setupCombo('pxSiteName');
+  setupCombo('logFilterDriverText', {
+    hiddenId: 'logFilterDriver',
+    onPick: function () { loadLogs(); },
+    onClear: function () { loadLogs(); }
+  });
+}
+
 function setDateLimits(ids) {
   ids.forEach(function(id){
     var el = document.getElementById(id);
@@ -700,29 +817,73 @@ async function ensureFaceScript() {
   }
   return false;
 }
+/* กันการค้างถาวร: ทุกงานที่รอผลต้องมีเวลาจำกัดเสมอ */
+function withTimeout(p, ms, label) {
+  var t;
+  return Promise.race([
+    Promise.resolve(p).then(function (v) { clearTimeout(t); return v; },
+                            function (e) { clearTimeout(t); throw e; }),
+    new Promise(function (_, rej) { t = setTimeout(function () { rej(new Error('TIMEOUT:' + (label || ''))); }, ms); })
+  ]);
+}
+
+/* iOS Safari: TensorFlow.js backend แบบ WebGL มีบั๊กที่ทำให้การประมวลผล
+ * "ค้างไปเลยโดยไม่คืนค่าและไม่มี error" (tensorflow/tfjs issue #7399,
+ * face-api.js issue #825) จึงบังคับใช้ backend แบบ CPU บน iOS
+ * เครื่องอื่นยังใช้ WebGL ตามปกติเพื่อความเร็ว */
+function isIOSDevice() {
+  var ua = navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(ua)) return true;
+  return /Macintosh/.test(ua) && typeof document !== 'undefined' && 'ontouchend' in document;
+}
+var faceBackendReady = false;
+async function ensureFaceBackend() {
+  if (faceBackendReady) return true;
+  try {
+    var tf = window.faceapi && faceapi.tf;
+    if (!tf) return false;
+    if (isIOSDevice()) {
+      await withTimeout(tf.setBackend('cpu'), 10000, 'setBackend');
+      await withTimeout(tf.ready(), 10000, 'tfReady');
+    } else {
+      await withTimeout(tf.ready(), 10000, 'tfReady');
+    }
+    faceBackendReady = true;
+    return true;
+  } catch (e) {
+    console.warn('ตั้งค่า backend ไม่สำเร็จ', e);
+    try { await faceapi.tf.setBackend('cpu'); await faceapi.tf.ready(); faceBackendReady = true; return true; }
+    catch (e2) { console.error(e2); return false; }
+  }
+}
+
 async function loadFaceModels() {
   if (faceModelsReady) return true;
   if (faceModelsLoading) {
-    // รอจนกว่าการโหลดรอบก่อนหน้าจะเสร็จ
-    for (var w = 0; w < 60 && faceModelsLoading; w++) await new Promise(function(r){ setTimeout(r, 500); });
+    // รอจนกว่าการโหลดรอบก่อนหน้าจะเสร็จ (สูงสุด 40 วินาที)
+    for (var w = 0; w < 80 && faceModelsLoading; w++) await new Promise(function(r){ setTimeout(r, 500); });
     return faceModelsReady;
   }
   faceModelsLoading = true;
-  var ok = await ensureFaceScript();
-  if (!ok) { faceModelsLoading = false; return false; }
-  for (var i = 0; i < MODEL_URLS.length; i++) {
-    try {
-      await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URLS[i]),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URLS[i]),
-        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URLS[i])
-      ]);
-      faceModelsReady = true; faceModelsLoading = false;
-      return true;
-    } catch (e) { console.warn('model source failed', MODEL_URLS[i], e); }
+  try {
+    var ok = await ensureFaceScript();
+    if (!ok) return false;
+    if (!(await ensureFaceBackend())) return false;
+    for (var i = 0; i < MODEL_URLS.length; i++) {
+      try {
+        await withTimeout(Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URLS[i]),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URLS[i]),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URLS[i])
+        ]), 45000, 'models');
+        faceModelsReady = true;
+        return true;
+      } catch (e) { console.warn('model source failed', MODEL_URLS[i], e); }
+    }
+    return false;
+  } finally {
+    faceModelsLoading = false;
   }
-  faceModelsLoading = false;
-  return false;
 }
 
 /* ตรวจว่าภาพมืดเกินไปหรือไม่ (คำนวณความสว่างเฉลี่ย) */
@@ -829,18 +990,26 @@ async function doCapture(kind) {
   camState[kind].shot = dataUrl;
 
   st.className = 'face-status face-wait';
-  st.textContent = 'กำลังตรวจจับใบหน้า...';
+  st.textContent = faceModelsReady ? 'กำลังตรวจจับใบหน้า...' : 'กำลังเตรียมโมดูลตรวจจับใบหน้า (ครั้งแรกใช้เวลาสักครู่)...';
 
   var ok = await loadFaceModels();
   if (!ok) {
     st.className = 'face-status face-bad';
-    st.textContent = 'โหลดโมดูลตรวจจับใบหน้าไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่';
+    st.textContent = 'เตรียมโมดูลตรวจจับใบหน้าไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วกด "ถ่ายใหม่" เพื่อลองอีกครั้ง';
     camState[kind].desc = null;
     return;
   }
+
+  st.className = 'face-status face-wait';
+  st.textContent = 'กำลังตรวจจับใบหน้า...';
   try {
-    var det = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({ inputSize:416, scoreThreshold:0.4 }))
-      .withFaceLandmarks().withFaceDescriptor();
+    // ใช้ canvas ที่ย่อขนาดแล้วแทน <img> เพื่อ (1) ไม่ต้องรอเบราว์เซอร์ decode รูป
+    // และ (2) ลดภาระการคำนวณบนมือถือให้เสร็จเร็วขึ้นมาก
+    var small = downscaleCanvas(canvas, 640);
+    var det = await withTimeout(
+      faceapi.detectSingleFace(small, new faceapi.TinyFaceDetectorOptions({ inputSize:320, scoreThreshold:0.4 }))
+        .withFaceLandmarks().withFaceDescriptor(),
+      40000, 'detect');
     if (!det) {
       st.className = 'face-status face-bad';
       st.textContent = 'ไม่พบใบหน้าในภาพ — กรุณาถ่ายใหม่ในที่แสงสว่างและหันหน้าตรง';
@@ -852,10 +1021,23 @@ async function doCapture(kind) {
     st.textContent = '✓ ตรวจพบใบหน้าเรียบร้อย';
   } catch (e) {
     st.className = 'face-status face-bad';
-    st.textContent = 'ตรวจจับใบหน้าไม่สำเร็จ กรุณาถ่ายใหม่';
+    st.textContent = (e && String(e.message).indexOf('TIMEOUT') === 0)
+      ? 'ตรวจจับใบหน้าใช้เวลานานผิดปกติ กรุณากด "ถ่ายใหม่" เพื่อลองอีกครั้ง'
+      : 'ตรวจจับใบหน้าไม่สำเร็จ กรุณาถ่ายใหม่';
     camState[kind].desc = null;
     console.error(e);
   }
+}
+/* ย่อภาพให้ด้านยาวสุดไม่เกิน max px */
+function downscaleCanvas(src, max) {
+  var w = src.width, h = src.height;
+  var scale = Math.min(1, max / Math.max(w, h));
+  if (scale >= 1) return src;
+  var out = document.createElement('canvas');
+  out.width = Math.round(w * scale);
+  out.height = Math.round(h * scale);
+  out.getContext('2d').drawImage(src, 0, 0, out.width, out.height);
+  return out;
 }
 function screenFlashAndWait(ms) {
   return new Promise(function(resolve){
@@ -994,8 +1176,11 @@ function updateClock() {
 function loadSites() {
   google.script.run.withSuccessHandler(function(list){
     sitesCache = list || [];
-    var dl = document.getElementById('siteList');
-    dl.innerHTML = sitesCache.map(function(s){ return '<option value="'+escapeHtml(s.name)+'">'; }).join('');
+    var siteItems = sitesCache.map(function(s){
+      return { label: s.name, value: s.name, sub: [s.code, s.type].filter(Boolean).join(' · ') };
+    });
+    comboSetItems('ciSiteName', siteItems);
+    comboSetItems('pxSiteName', siteItems);
     var c = document.getElementById('siteCount');
     if (c) c.textContent = 'มีหน่วยงานในระบบ ' + sitesCache.length + ' แห่ง';
   }).getSiteList();
@@ -1289,11 +1474,11 @@ function loadAdminDrivers(cb) {
       if (res && res.authExpired) { handleAuthExpired(); return; }
     if (res && res.success) {
       adminDriversCache = res.drivers;
-      var opts = '<option value="">-- ทุกคน --</option>' + res.drivers.map(function(d){
-        return '<option value="'+d.id+'">'+escapeHtml(d.name)+' ('+d.id+')</option>';
-      }).join('');
-      var f = document.getElementById('logFilterDriver');
-      if (f) f.innerHTML = opts;
+      comboSetItems('logFilterDriverText', [{ label: '-- ทุกคน --', value: '', sub: 'ดูรายการเดินทางของพนักงานทุกคน' }].concat(
+        res.drivers.map(function(d){
+          return { label: d.name + ' (' + d.id + ')', value: d.id, sub: d.id + (d.nickname ? ' · ' + d.nickname : '') + (d.status === 'Active' ? '' : ' · ระงับการใช้งาน') };
+        })
+      ));
       var px = document.getElementById('pxDriver');
       if (px) px.innerHTML = '<option value="">-- เลือกพนักงาน --</option>' + res.drivers.filter(function(d){return d.status==='Active';}).map(function(d){
         return '<option value="'+d.id+'" data-name="'+escapeHtml(d.name)+'">'+escapeHtml(d.name)+' ('+d.id+')</option>';
@@ -1745,6 +1930,13 @@ function submitAddModal(kind) {
         password: document.getElementById('m_password').value
       });
   }
+}
+
+/* เตรียม combo box ทั้งหมดตอนหน้าเว็บพร้อมใช้งาน */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCombos);
+} else {
+  initCombos();
 }
 </script>
 </body>
